@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package kv;
 
-option go_package = "github.com/esousa97/godistributedkv/api/proto";
+option go_package = "github.com/enoquesousa/godistributedkv/api/proto";
 
 // KeyValue defines the gRPC service for KV store operations.
 service KeyValue {

@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/esousa97/godistributedkv/api/proto"
+	pb "github.com/enoquesousa/godistributedkv/api/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

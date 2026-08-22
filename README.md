@@ -6,13 +6,13 @@
 
   <br>
 
-  ![CI](https://github.com/esousa97/godistributedkv/actions/workflows/go.yml/badge.svg)
-  [![Go Report Card](https://goreportcard.com/badge/github.com/esousa97/godistributedkv?v=2)](https://goreportcard.com/report/github.com/esousa97/godistributedkv)
-  [![CodeFactor](https://www.codefactor.io/repository/github/esousa97/godistributedkv/badge)](https://www.codefactor.io/repository/github/esousa97/godistributedkv)
-  ![Go Reference](https://pkg.go.dev/badge/github.com/esousa97/godistributedkv.svg)
-  ![License](https://img.shields.io/github/license/esousa97/godistributedkv)
-  ![Go Version](https://img.shields.io/github/go-mod/go-version/esousa97/godistributedkv)
-  ![Last Commit](https://img.shields.io/github/last-commit/esousa97/godistributedkv)
+  ![CI](https://github.com/enoquesousa/godistributedkv/actions/workflows/go.yml/badge.svg)
+  [![Go Report Card](https://goreportcard.com/badge/github.com/enoquesousa/godistributedkv?v=2)](https://goreportcard.com/report/github.com/enoquesousa/godistributedkv)
+  [![CodeFactor](https://www.codefactor.io/repository/github/enoquesousa/godistributedkv/badge)](https://www.codefactor.io/repository/github/enoquesousa/godistributedkv)
+  ![Go Reference](https://pkg.go.dev/badge/github.com/enoquesousa/godistributedkv.svg)
+  ![License](https://img.shields.io/github/license/enoquesousa/godistributedkv)
+  ![Go Version](https://img.shields.io/github/go-mod/go-version/enoquesousa/godistributedkv)
+  ![Last Commit](https://img.shields.io/github/last-commit/enoquesousa/godistributedkv)
 </div>
 
 ---
@@ -52,7 +52,7 @@
 ### Installation
 
 ```bash
-git clone https://github.com/esousa97/godistributedkv.git
+git clone https://github.com/enoquesousa/godistributedkv.git
 cd godistributedkv
 make tidy
 ```
@@ -113,12 +113,12 @@ This project is licensed under the [MIT License](LICENSE).
 **Enoque Sousa**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/enoque-sousa-bb89aa168/)
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)](https://github.com/ESousa97)
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat&logo=github&logoColor=white)](https://github.com/enoquesousa)
 [![Portfolio](https://img.shields.io/badge/Portfolio-FF5722?style=flat&logo=target&logoColor=white)](https://enoquesousa.vercel.app)
 
 **[⬆ Back to Top](#go-distributed-kv)**
 
-Made with ❤️ by [Enoque Sousa](https://github.com/ESousa97)
+Made with ❤️ by [Enoque Sousa](https://github.com/enoquesousa)
 
 **Project Status:** Archived — Study Project
 
