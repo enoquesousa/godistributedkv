@@ -15,7 +15,7 @@ To set up your development environment, ensure you have the following installed:
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/esousa97/godistributedkv.git
+    git clone https://github.com/enoquesousa/godistributedkv.git
     cd godistributedkv
     ```
 2.  Install dependencies:

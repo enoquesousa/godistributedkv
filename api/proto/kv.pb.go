@@ -788,7 +788,7 @@ const file_api_proto_kv_proto_rawDesc = "" +
 	"\x04Ping\x12\x0f.kv.PingRequest\x1a\x10.kv.PingResponse\x120\n" +
 	"\vRequestVote\x12\x0f.kv.VoteRequest\x1a\x10.kv.VoteResponse\x128\n" +
 	"\tHeartbeat\x12\x14.kv.HeartbeatRequest\x1a\x15.kv.HeartbeatResponse\x12;\n" +
-	"\fReplicateSet\x12\x14.kv.ReplicateRequest\x1a\x15.kv.ReplicateResponseB/Z-github.com/esousa97/godistributedkv/api/protob\x06proto3"
+	"\fReplicateSet\x12\x14.kv.ReplicateRequest\x1a\x15.kv.ReplicateResponseB2Z0github.com/enoquesousa/godistributedkv/api/protob\x06proto3"
 
 var (
 	file_api_proto_kv_proto_rawDescOnce sync.Once

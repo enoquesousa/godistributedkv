@@ -7,11 +7,11 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/esousa97/godistributedkv/api/proto"
-	"github.com/esousa97/godistributedkv/internal/cluster"
-	"github.com/esousa97/godistributedkv/internal/config"
-	"github.com/esousa97/godistributedkv/internal/server"
-	"github.com/esousa97/godistributedkv/internal/storage"
+	pb "github.com/enoquesousa/godistributedkv/api/proto"
+	"github.com/enoquesousa/godistributedkv/internal/cluster"
+	"github.com/enoquesousa/godistributedkv/internal/config"
+	"github.com/enoquesousa/godistributedkv/internal/server"
+	"github.com/enoquesousa/godistributedkv/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
