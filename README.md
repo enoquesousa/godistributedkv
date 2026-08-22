@@ -7,7 +7,6 @@
   <br>
 
   ![CI](https://github.com/enoquesousa/godistributedkv/actions/workflows/go.yml/badge.svg)
-  [![Go Report Card](https://goreportcard.com/badge/github.com/enoquesousa/godistributedkv?v=2)](https://goreportcard.com/report/github.com/enoquesousa/godistributedkv)
   [![CodeFactor](https://www.codefactor.io/repository/github/enoquesousa/godistributedkv/badge)](https://www.codefactor.io/repository/github/enoquesousa/godistributedkv)
   ![Go Reference](https://pkg.go.dev/badge/github.com/enoquesousa/godistributedkv.svg)
   ![License](https://img.shields.io/github/license/enoquesousa/godistributedkv)
