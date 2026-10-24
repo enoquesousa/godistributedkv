@@ -126,6 +126,20 @@ func validateAddress(address string, listener, hasTLS bool) error {
 	if err != nil {
 		return errors.New("addresses must use host:port, without a URI scheme")
 	}
+	if portErr := validatePort(port, listener); portErr != nil {
+		return portErr
+	}
+	loopback, err := validateHost(host, listener)
+	if err != nil {
+		return err
+	}
+	if !hasTLS && !loopback {
+		return errors.New("plaintext requires literal loopback IPs for the listener and every peer; configure mutual TLS for remote addresses")
+	}
+	return nil
+}
+
+func validatePort(port string, listener bool) error {
 	for _, digit := range port {
 		if digit < '0' || digit > '9' {
 			return errors.New("addresses require a valid numeric TCP port")
@@ -135,21 +149,23 @@ func validateAddress(address string, listener, hasTLS bool) error {
 	if err != nil || portNumber < 0 || portNumber > 65535 || (!listener && portNumber == 0) {
 		return errors.New("addresses require a valid numeric TCP port")
 	}
+	return nil
+}
+
+// validateHost checks host syntax and reports whether it is a literal loopback IP.
+func validateHost(host string, listener bool) (bool, error) {
 	ip, ipErr := netip.ParseAddr(host)
 	if ipErr == nil && ip.Zone() != "" {
-		return errors.New("addresses must not include an IP zone")
+		return false, errors.New("addresses must not include an IP zone")
 	}
 	if host == "" {
 		if !listener {
-			return errors.New("peer addresses require an explicit host")
+			return false, errors.New("peer addresses require an explicit host")
 		}
 	} else if ipErr != nil && !validHostname(host) {
-		return errors.New("addresses require an IP literal or DNS hostname, without a URI scheme")
+		return false, errors.New("addresses require an IP literal or DNS hostname, without a URI scheme")
 	}
-	if !hasTLS && (ipErr != nil || !ip.IsLoopback()) {
-		return errors.New("plaintext requires literal loopback IPs for the listener and every peer; configure mutual TLS for remote addresses")
-	}
-	return nil
+	return ipErr == nil && ip.IsLoopback(), nil
 }
 
 func validHostname(host string) bool {
