@@ -1,5 +1,7 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26.10-alpine AS builder
+
+ENV GOTOOLCHAIN=local
 
 WORKDIR /app
 
@@ -12,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o godistributedkv ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o godistributedkv ./cmd/server
 
 # Final stage
 FROM alpine:3.21

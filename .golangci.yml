@@ -1,31 +1,45 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
 
 linters:
+  default: none
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
     - revive
-    - gofmt
     - misspell
-
-linters-settings:
-  govet:
-    enable:
-      - shadow
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-        disabled: false
+  settings:
+    govet:
+      enable:
+        - shadow
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

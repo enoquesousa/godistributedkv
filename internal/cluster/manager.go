@@ -14,8 +14,8 @@ import (
 	"time"
 
 	pb "github.com/enoquesousa/godistributedkv/api/proto"
+	"github.com/enoquesousa/godistributedkv/internal/transport"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // NodeState represents the current role of a node in the cluster.
@@ -47,8 +47,9 @@ type Manager struct {
 	mu sync.RWMutex
 
 	// Node Info
-	nodeID string
-	peers  map[string]*Peer
+	nodeID    string
+	peers     map[string]*Peer
+	transport *transport.Transport
 
 	// Raft-lite State
 	state       NodeState
@@ -61,12 +62,14 @@ type Manager struct {
 }
 
 // NewManager initializes and returns a new cluster [Manager].
-func NewManager(nodeID string, peerAddrs []string) *Manager {
+// rpcTransport must be constructed with [transport.New] before the manager starts.
+func NewManager(nodeID string, peerAddrs []string, rpcTransport *transport.Transport) *Manager {
 	m := &Manager{
 		nodeID:      nodeID,
 		peers:       make(map[string]*Peer),
 		state:       Follower,
 		currentTerm: 0,
+		transport:   rpcTransport,
 	}
 
 	for _, addr := range peerAddrs {
@@ -125,15 +128,15 @@ func (m *Manager) startElection() {
 		wg.Add(1)
 		go func(peer *Peer) {
 			defer wg.Done()
-			m.ensureClient(peer)
-			if peer.Client == nil {
+			client := m.ensureClient(peer)
+			if client == nil {
 				return
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			defer cancel()
 
-			resp, err := peer.Client.RequestVote(ctx, &pb.VoteRequest{
+			resp, err := client.RequestVote(ctx, &pb.VoteRequest{
 				Term:        term,
 				CandidateId: nodeID,
 			})
@@ -202,13 +205,13 @@ func (m *Manager) heartbeatLoop() {
 
 		for _, p := range m.peers {
 			go func(peer *Peer) {
-				m.ensureClient(peer)
-				if peer.Client == nil {
+				client := m.ensureClient(peer)
+				if client == nil {
 					return
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
 				defer cancel()
-				resp, err := peer.Client.Heartbeat(ctx, &pb.HeartbeatRequest{
+				resp, err := client.Heartbeat(ctx, &pb.HeartbeatRequest{
 					Term:     term,
 					LeaderId: nodeID,
 				})
@@ -223,17 +226,22 @@ func (m *Manager) heartbeatLoop() {
 	}
 }
 
-func (m *Manager) ensureClient(peer *Peer) {
+func (m *Manager) ensureClient(peer *Peer) pb.KeyValueClient {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if peer.Conn == nil {
-		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		options, err := m.transport.ClientOptions(peer.Addr)
 		if err != nil {
-			return
+			return nil
+		}
+		conn, err := grpc.NewClient(peer.Addr, options...)
+		if err != nil {
+			return nil
 		}
 		peer.Conn = conn
 		peer.Client = pb.NewKeyValueClient(conn)
 	}
+	return peer.Client
 }
 
 // HandleRequestVote processes a vote request from a candidate in the cluster.
@@ -320,8 +328,8 @@ func (m *Manager) Replicate(ctx context.Context, key, value string) bool {
 		wg.Add(1)
 		go func(peer *Peer) {
 			defer wg.Done()
-			m.ensureClient(peer)
-			if peer.Client == nil {
+			client := m.ensureClient(peer)
+			if client == nil {
 				return
 			}
 
@@ -329,7 +337,7 @@ func (m *Manager) Replicate(ctx context.Context, key, value string) bool {
 			peerCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
 			defer cancel()
 
-			resp, err := peer.Client.ReplicateSet(peerCtx, &pb.ReplicateRequest{
+			resp, err := client.ReplicateSet(peerCtx, &pb.ReplicateRequest{
 				Term:     term,
 				LeaderId: nodeID,
 				Key:      key,

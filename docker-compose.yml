@@ -2,33 +2,42 @@ services:
   node1:
     build: .
     container_name: kv-node-1
-    command: ["./godistributedkv", "--addr", ":50051", "--peers", "node2:50052,node3:50053", "--wal-path", "/data/kv.log"]
+    command: ["--addr", "node1:50051", "--peers", "node2:50052,node3:50053", "--wal-path", "/data/kv.log", "--tls-ca", "/certs/ca.crt", "--tls-cert", "/certs/node.crt", "--tls-key", "/certs/node.key"]
     ports:
-      - "60001:50051"
+      - "127.0.0.1:60001:50051"
     volumes:
       - node1-data:/data
+      - ./certs/dev/ca.crt:/certs/ca.crt:ro
+      - ./certs/dev/node1.crt:/certs/node.crt:ro
+      - ./certs/dev/node1.key:/certs/node.key:ro
     networks:
       - kv-network
 
   node2:
     build: .
     container_name: kv-node-2
-    command: ["./godistributedkv", "--addr", ":50052", "--peers", "node1:50051,node3:50053", "--wal-path", "/data/kv.log"]
+    command: ["--addr", "node2:50052", "--peers", "node1:50051,node3:50053", "--wal-path", "/data/kv.log", "--tls-ca", "/certs/ca.crt", "--tls-cert", "/certs/node.crt", "--tls-key", "/certs/node.key"]
     ports:
-      - "60002:50052"
+      - "127.0.0.1:60002:50052"
     volumes:
       - node2-data:/data
+      - ./certs/dev/ca.crt:/certs/ca.crt:ro
+      - ./certs/dev/node2.crt:/certs/node.crt:ro
+      - ./certs/dev/node2.key:/certs/node.key:ro
     networks:
       - kv-network
 
   node3:
     build: .
     container_name: kv-node-3
-    command: ["./godistributedkv", "--addr", ":50053", "--peers", "node1:50051,node2:50052", "--wal-path", "/data/kv.log"]
+    command: ["--addr", "node3:50053", "--peers", "node1:50051,node2:50052", "--wal-path", "/data/kv.log", "--tls-ca", "/certs/ca.crt", "--tls-cert", "/certs/node.crt", "--tls-key", "/certs/node.key"]
     ports:
-      - "60003:50053"
+      - "127.0.0.1:60003:50053"
     volumes:
       - node3-data:/data
+      - ./certs/dev/ca.crt:/certs/ca.crt:ro
+      - ./certs/dev/node3.crt:/certs/node.crt:ro
+      - ./certs/dev/node3.key:/certs/node.key:ro
     networks:
       - kv-network
 
