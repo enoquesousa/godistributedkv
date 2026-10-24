@@ -1,48 +1,74 @@
 name: Go CI
- 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:
-    branches: [ "master", "develop" ]
+    branches: ["master", "develop"]
   pull_request:
-    branches: [ "master", "develop" ]
+    branches: ["master", "develop"]
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          go-version: '1.24.0'
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check Go formatting
+        run: |
+          unformatted_files="$(gofmt -l .)"
+          if [ -n "$unformatted_files" ]; then
+            printf '%s\n' "$unformatted_files"
+            exit 1
+          fi
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: latest
+          version: v2.12.1
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Run Gosec
-        uses: securego/gosec@master
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          args: -exclude-dir=api/proto ./...
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Gosec
+        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.30.0 -exclude-dir=api/proto ./...
+      - name: Scan for reachable dependency vulnerabilities
+        run: |
+          runtime_go_version="$(go env GOVERSION)"
+          GOVERSION="$runtime_go_version" go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   test:
     name: Test & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [lint, security]
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          go-version: '1.24.0'
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
           cache: true
 
       - name: Install dependencies
@@ -52,4 +78,4 @@ jobs:
         run: go test -v -race ./...
 
       - name: Build
-        run: go build -v ./cmd/server/main.go
+        run: go build -v ./...
