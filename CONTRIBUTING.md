@@ -6,7 +6,7 @@ Thank you for your interest in contributing to **godistributedkv**! We welcome c
 
 To set up your development environment, ensure you have the following installed:
 
-- **Go 1.24+**: The project uses the latest Go features.
+- **Go 1.26.10+**: Keep the local toolchain aligned with CI and the Docker build.
 - **Protocol Buffers (protoc)**: Required if you need to modify `.proto` files.
 - **`protoc-gen-go` and `protoc-gen-go-grpc`**: Go plugins for protoc.
 - **Make**: For running lifecycle commands.
@@ -50,6 +50,12 @@ Always run tests before submitting a PR:
 make test
 ```
 If you introduce new features, please add corresponding unit tests in the relevant `_test.go` file.
+
+For transport changes, run `go test -race ./...` and exercise both the loopback
+policy and certificate rejection paths. Test identities must be generated or
+clearly synthetic; never commit a real private key. See the README for the local
+mTLS example. The certificate-generation script must not overwrite identities
+that are already in use.
 
 ## Pull Request Process
 

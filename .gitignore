@@ -25,3 +25,11 @@ go.work
 
 # Protobuf generated files (Optional: common to commit them, but good to know)
 # api/proto/*.pb.go
+
+# Local runtime data, build outputs and private development certificates
+/bin/
+/data/
+/main
+/certs/
+*.key
+*.pem

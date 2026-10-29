@@ -44,7 +44,7 @@
 
 ### Prerequisites
 
-- **Go 1.24+**
+- **Go 1.26.10+**
 - **Protocol Buffers Compiler (protoc)**
 - **gRPC Plugins for Go**
 
@@ -61,15 +61,114 @@ make tidy
 To start a local cluster with 3 nodes, open different terminals and run:
 
 ```bash
-# Node 1 (Suggested initial leader)
-go run cmd/server/main.go --addr :50051 --peers :50052,:50053
+# Node 1 (loopback-only development)
+go run ./cmd/server --addr 127.0.0.1:50051 --peers 127.0.0.1:50052,127.0.0.1:50053 --wal-path data/node1.log
 
 # Node 2
-go run cmd/server/main.go --addr :50052 --peers :50051,:50053
+go run ./cmd/server --addr 127.0.0.1:50052 --peers 127.0.0.1:50051,127.0.0.1:50053 --wal-path data/node2.log
 
 # Node 3
-go run cmd/server/main.go --addr :50053 --peers :50051,:50052
+go run ./cmd/server --addr 127.0.0.1:50053 --peers 127.0.0.1:50051,127.0.0.1:50052 --wal-path data/node3.log
 ```
+
+This mode has no authentication or encryption. The listener and every peer must
+use a literal loopback IP, such as `127.0.0.1` or `[::1]`. Other local users and
+processes can access the service. Hostnames (including `localhost`), wildcard
+listeners such as `:50051`, and non-loopback peers require the mTLS configuration
+below. Each process needs its own WAL file.
+
+### Running with Docker Compose and mTLS
+
+Generate development certificates with OpenSSL, then start the cluster:
+
+```bash
+./scripts/generate-dev-certs.sh
+docker compose up --build
+```
+
+The script creates a fresh development CA, three node identities and a client
+identity in the ignored `certs/dev/` directory. Certificates expire after seven
+days, private files use owner-only permissions, and the script refuses to
+overwrite an existing directory. These identities are for this local example;
+use your own certificate management and dedicated CA for a deployed cluster.
+
+Compose uses mTLS between containers and publishes the three gRPC ports only on
+`127.0.0.1:60001`, `127.0.0.1:60002` and `127.0.0.1:60003`. Each container mounts
+only the public CA and its own certificate/key, read-only. The CA private key is
+never mounted. The `certs/` directory and `*.key`/`*.pem` files are excluded from
+Git and the Docker build context. Keep the CA key offline when it is not being used.
+
+Leader hints use the internal Compose node addresses. A client running on the
+host must map a returned hint to the corresponding published endpoint; the
+server does not translate these addresses automatically:
+
+| Internal node ID / leader hint | Endpoint on the host |
+| --- | --- |
+| `node1:50051` | `127.0.0.1:60001` |
+| `node2:50052` | `127.0.0.1:60002` |
+| `node3:50053` | `127.0.0.1:60003` |
+
+For example, a separately installed `grpcurl` can authenticate to node 1:
+
+```bash
+grpcurl -cacert certs/dev/ca.crt \
+  -cert certs/dev/client.crt -key certs/dev/client.key \
+  -d '{}' 127.0.0.1:60001 kv.KeyValue/Ping
+```
+
+Do not use `-plaintext` or `-insecure` for the mTLS example. For a non-Compose
+deployment, supply `--tls-ca`, `--tls-cert` and `--tls-key` together on every node.
+Node certificates must be valid for both server and client authentication,
+because nodes also connect to peers. The example explicitly sets the
+`serverAuth` and `clientAuth` extended key usages. Their SANs must match the hostnames or IPs
+in `--peers` and in client connection targets. A node's listening address is also
+its advertised node ID; use an address peers and clients can resolve and reach.
+
+## Authentication and transport
+
+The application has two explicit modes: unauthenticated loopback development,
+or mutually authenticated TLS. It does not issue JWTs, refresh tokens, API keys
+or user sessions.
+
+| Component | Responsibility |
+| --- | --- |
+| `internal/config` | Reads listener, peers, WAL and certificate-file paths. |
+| `internal/transport` | Validates the selected mode and loads TLS credentials and the explicit CA trust pool. |
+| `cmd/server` | Configures the gRPC listener before starting cluster work. |
+| `internal/cluster` | Uses the same transport policy for outbound peer connections. |
+| `internal/server` | Runs key/value and consensus RPCs after the transport handshake. |
+
+In mTLS mode, a connection must complete a TLS handshake before any RPC reaches
+a handler. The server requires a client certificate valid for client
+authentication under the configured CA; the client verifies the server's
+certificate chain, validity and target SAN. Peer connections also present the
+node's own certificate. There is no retry using plaintext after a TLS failure.
+This protects all methods, including `Get`, `Set`, `Delete`, `Ping`,
+`RequestVote`, `Heartbeat`, `ReplicateSet` and gRPC reflection.
+
+Certificate trust is the authorization boundary: **every accepted client
+certificate has access to all RPCs, including cluster administration and
+replication**. There are no separate user/peer roles, per-key permissions or
+certificate-to-node-ID bindings. Use a dedicated CA and issue certificates only
+to trusted cluster operators and nodes; do not configure a broad public or
+company-wide CA as the cluster's client trust root.
+
+The process reads certificates and unencrypted PEM private keys from files at
+startup and keeps the loaded private keys in memory. It does not send private keys over the network or
+put them in logs or command-line arguments. File paths are configuration, not
+credentials. Certificates and trust roots are not hot-reloaded, and there is no
+application-level certificate revocation list. Replacing files requires a
+restart; removing a compromised trust root requires a coordinated CA/identity
+rotation and restart across the cluster. The WAL remains plaintext on disk, so
+protect its filesystem separately.
+
+The cluster is a study implementation of Raft-like consensus. mTLS protects the
+connection and identifies members of the trust domain; it does not establish
+production-grade consensus correctness or protect against a malicious trusted
+member.
+
+See the [gRPC authentication guide](https://grpc.io/docs/guides/auth/) for the
+transport model and [SECURITY.md](SECURITY.md) for the security boundary.
 
 ## Makefile Targets
 
@@ -90,6 +189,7 @@ The project follows **Dependency Inversion** principles and a **Modular Architec
 - `cmd/server`: Application entry point and cluster bootstrap.
 - `internal/cluster`: Consensus orchestrator, leader election, and node health.
 - `internal/config`: Typed configuration management.
+- `internal/transport`: Loopback policy and mutual TLS credentials.
 - `internal/server`: gRPC handlers for read and write operations.
 - `internal/storage`: Core storage (Thread-safe Map) and persistence (WAL).
 
@@ -97,9 +197,12 @@ The project follows **Dependency Inversion** principles and a **Modular Architec
 
 | Flag         | Environment Variable | Description                         | Type     | Default         |
 | ------------ | -------------------- | ----------------------------------- | -------- | --------------- |
-| `--addr`     | -                    | Server listening address            | String   | `:50051`        |
+| `--addr`     | -                    | Server listening address and node ID | String  | `127.0.0.1:50051` |
 | `--peers`    | -                    | Comma-separated list of peers       | String   | -               |
 | `--wal-path` | -                    | Path to the persistence log file    | String   | `data/kv.log`   |
+| `--tls-ca`   | -                    | PEM CA bundle for peer/client trust | String   | -               |
+| `--tls-cert` | -                    | PEM node certificate/chain          | String   | -               |
+| `--tls-key`  | -                    | Unencrypted PEM private key matching the certificate | String | - |
 
 ## License
 

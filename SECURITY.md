@@ -9,31 +9,46 @@ We only provide security updates for the following versions of **godistributedkv
 | 1.0.x   | :white_check_mark: |
 | < 1.0   | :x:                |
 
+## Security boundary
+
+This repository is a study implementation. Its supported transport modes are:
+
+- **Local development:** plaintext gRPC, restricted to literal loopback listener
+  and peer IPs. Any local process can call its methods.
+- **mTLS:** an explicit CA bundle and matching node certificate/private key are
+  required together. Remote and wildcard addresses are rejected without this
+  configuration. Both sides authenticate the TLS connection; server-name
+  verification remains enabled for outbound connections.
+
+All gRPC methods and reflection share this transport boundary. An accepted
+client certificate grants full access, including consensus and replication
+methods. There is no end-user login, token lifecycle, method-level role policy,
+per-key ACL or certificate-to-node-ID authorization. Keep the client CA dedicated
+to this cluster and restrict issuance to trusted participants.
+
+PEM files are loaded at startup; the key loader expects unencrypted private-key
+files. Protect private keys with filesystem access
+controls, keep the issuing CA key outside server containers and exclude keys
+from source control and image build contexts. The development script creates
+seven-day identities and refuses to overwrite an existing directory. It is not
+a production PKI or an automatic rotation service.
+
+There is no certificate hot reload or application revocation list. Restart
+processes after changing their keys or trust roots; coordinate a trust-root
+rotation to remove a compromised identity from the trust domain. Existing TLS
+connections also need to be terminated. Stored values and the WAL are not
+encrypted at rest. Transport authentication does not correct the limitations of
+the simplified consensus algorithm or prevent abuse by a trusted member.
+
 ## Reporting a Vulnerability
 
-We take the security of **godistributedkv** seriously. If you believe you have found a security vulnerability, please report it to us responsibly.
+Please do not report vulnerabilities through public GitHub issues. Use the
+repository's private vulnerability-reporting facility when available, and
+include the vulnerability type, reproduction steps, potential impact and any
+suggested mitigation. If private reporting is unavailable, establish a private
+channel with the maintainer before sharing sensitive details. No functioning
+security email address is configured in this repository.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
-
-### Responsible Disclosure Process
-
-1.  **Email**: Send an email to [security@example.com](mailto:security@example.com) with the details of the vulnerability.
-2.  **Details**: Please include as much information as possible, including:
-    *   Type of vulnerability (e.g., buffer overflow, SQL injection, etc.).
-    *   Steps to reproduce the issue.
-    *   Potential impact.
-    *   Any suggested fixes or mitigations.
-3.  **Acknowledgement**: We will acknowledge receipt of your report within 48 hours.
-4.  **Verification**: We will investigate and verify the vulnerability.
-5.  **Fix**: We will work on a fix and coordinate a release.
-6.  **Public Disclosure**: Once a fix is released, we will publicly disclose the vulnerability with proper attribution to you (if desired).
-
-## Security Best Practices
-
-To keep your installation secure:
-
-- Always run the latest supported version.
-- Use TLS/SSL for all gRPC communication in production (where applicable).
-- Limit access to the administrative ports.
-
-Thank you for helping keep our community safe!
+Reports should omit usable credentials, private keys and customer data. The
+maintainer verifies the report, coordinates a fix and release, and then arranges
+public disclosure with attribution when requested.
